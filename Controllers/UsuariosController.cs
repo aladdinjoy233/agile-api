@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace agile_api.Controllers
@@ -86,6 +87,21 @@ namespace agile_api.Controllers
 			{
 				return BadRequest(ex.Message);
 			}
+		}
+
+		[HttpGet("Obtener")]
+		[Authorize]
+		public IActionResult Obtener()
+		{
+			var usuario = User.Identity != null ? _context.Usuarios.FirstOrDefault(x => x.Email == User.Identity.Name) : null;
+			Console.WriteLine("Nombre: " + usuario?.Nombre);
+			Console.WriteLine("Email: " + usuario?.Email);
+
+			if (usuario == null) {
+				return NotFound();
+			}
+
+			return Ok(usuario);
 		}
 
 		private string Hashear(string c) {
