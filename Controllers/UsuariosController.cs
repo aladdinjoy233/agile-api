@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 
-
 namespace agile_api.Controllers
 {
 	[ApiController]
@@ -94,11 +93,9 @@ namespace agile_api.Controllers
 		public IActionResult Obtener()
 		{
 			var usuario = User.Identity != null ? _context.Usuarios.FirstOrDefault(x => x.Email == User.Identity.Name) : null;
-			Console.WriteLine("Nombre: " + usuario?.Nombre);
-			Console.WriteLine("Email: " + usuario?.Email);
 
 			if (usuario == null) {
-				return NotFound();
+				return Unauthorized();
 			}
 
 			return Ok(usuario);
