@@ -16,5 +16,5 @@ public class Tienda
 	public string Email { get; set; } = "";
 	public string Telefono { get; set; } = "";
 
-	public List<Usuario> Usuarios { get; set; } = [];
+	public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
 }
