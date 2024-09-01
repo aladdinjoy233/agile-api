@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace agile_api.Controllers
 {
@@ -33,32 +34,47 @@ namespace agile_api.Controllers
 		// }
 
 		[HttpPost("Signup")]
-		public IActionResult Signup(Usuario signup)
+		public async Task<IActionResult> Signup(Usuario signup)
 		{
-			try
+			// Comprobar que el email ingresado ya no exista como usuario
+			var existeUsuarioConEmail = await _context.Usuarios.AnyAsync(x => x.Email == signup.Email);
+			if (existeUsuarioConEmail)
 			{
-				// Comprobar que el email ingresado ya no exista como usuario
-				var existeUsuarioConEmail = _context.Usuarios.Any(x => x.Email == signup.Email);
+				return BadRequest("Ya existe un usuario con este correo");
+			}
 
-				if (existeUsuarioConEmail) {
-					return BadRequest("Ya existe un usuario con este correo");
+			// Hashear contraseña
+			string hashed = Hashear(signup.Password);
+
+			// Crear y guardar el usuario
+			var usuario = new Usuario
+			{
+				Email = signup.Email,
+				Nombre = signup.Nombre,
+				Password = hashed
+			};
+			_context.Usuarios.Add(usuario);
+			await _context.SaveChangesAsync();
+
+			// Ver si hay invitaciones pendientes y agregar al usuario a la tienda correspondiente
+			var invitacionesPendientes = await _context.InvitacionesPendientes
+				.Where(i => i.EmailInvitado == signup.Email)
+				.ToListAsync();
+
+			foreach (var invitacion in invitacionesPendientes)
+			{
+				var tienda = await _context.Tiendas.FindAsync(invitacion.TiendaId);
+				if (tienda != null)
+				{
+					tienda.Usuarios.Add(usuario);
+					_context.InvitacionesPendientes.Remove(invitacion);
 				}
-
-				// Hashear contraseña
-				string hashed = Hashear(signup.Password);
-
-				// Crear y guardar el usuario
-				var usuario = new Usuario{ Email = signup.Email, Nombre = signup.Nombre, Password = hashed	};
-				_context.Usuarios.Add(usuario);
-				_context.SaveChanges();
-
-				// Devolver JWT
-				return Ok(CrearToken(usuario));
 			}
-			catch (Exception ex)
-			{
-				return BadRequest(ex.Message);
-			}
+
+			await _context.SaveChangesAsync();
+
+			// Devolver JWT
+			return Ok(CrearToken(usuario));
 		}
 
 		[HttpPost("Login")]

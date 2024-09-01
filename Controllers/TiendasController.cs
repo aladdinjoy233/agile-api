@@ -105,4 +105,50 @@ public class TiendasController : ControllerBase
 
 		return Ok(tiendas);
 	}
+
+	[HttpPost("{tiendaId}/InvitarUsuario")]
+	[Authorize]
+	public async Task<IActionResult> InvitarUsuario(int tiendaId, [FromBody] InvitacionForm invitacion)
+	{
+		if (string.IsNullOrWhiteSpace(invitacion.Email))
+		{
+			return BadRequest("El correo electrónico es requerido.");
+		}
+
+		var tienda = await _context.Tiendas.FindAsync(tiendaId);
+		if (tienda == null)
+		{
+			return NotFound("Tienda no encontrada");
+		}
+
+		var usuarioInvitado = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == invitacion.Email);
+		if (usuarioInvitado != null)
+		{
+			if (!tienda.Usuarios.Contains(usuarioInvitado))
+			{
+				tienda.Usuarios.Add(usuarioInvitado);
+				await _context.SaveChangesAsync();
+				return Ok("Usuario agregado a la tienda.");
+			}
+
+			return BadRequest("El usuario ya se encuentra en la tienda.");
+		}
+
+		var invitacionExistente = await _context.InvitacionesPendientes.FirstOrDefaultAsync(i => i.TiendaId == tiendaId && i.EmailInvitado == invitacion.Email);
+		if (invitacionExistente != null)
+		{
+			return BadRequest("La invitación ya existe.");
+		}
+
+		var nuevaInvitacion = new InvitacionPendiente
+		{
+			EmailInvitado = invitacion.Email,
+			TiendaId = tiendaId
+		};
+
+		await _context.InvitacionesPendientes.AddAsync(nuevaInvitacion);
+		await _context.SaveChangesAsync();
+
+		return Ok("Invitación enviada");
+	}
 }
