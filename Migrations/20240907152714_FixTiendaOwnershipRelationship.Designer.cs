@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using agile_api.Models;
 
@@ -10,9 +11,11 @@ using agile_api.Models;
 namespace agile_api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240907152714_FixTiendaOwnershipRelationship")]
+    partial class FixTiendaOwnershipRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -137,7 +140,7 @@ namespace agile_api.Migrations
             modelBuilder.Entity("agile_api.Models.Tienda", b =>
                 {
                     b.HasOne("agile_api.Models.Usuario", "Dueño")
-                        .WithMany()
+                        .WithMany("TiendasPropias")
                         .HasForeignKey("DueñoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -148,6 +151,11 @@ namespace agile_api.Migrations
             modelBuilder.Entity("agile_api.Models.Tienda", b =>
                 {
                     b.Navigation("InvitacionesPendientes");
+                });
+
+            modelBuilder.Entity("agile_api.Models.Usuario", b =>
+                {
+                    b.Navigation("TiendasPropias");
                 });
 #pragma warning restore 612, 618
         }

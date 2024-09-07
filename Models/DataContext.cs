@@ -14,8 +14,9 @@ public class DataContext : DbContext
 	{
 		modelBuilder.Entity<Tienda>()
 			.HasOne(t => t.Dueño)
-			.WithOne()
-			.HasForeignKey<Tienda>(t => t.DueñoId);
+			.WithMany()
+			.HasForeignKey(t => t.DueñoId)
+			.OnDelete(DeleteBehavior.Restrict);
 
 		modelBuilder.Entity<Usuario>()
 			.HasMany(u => u.Tiendas)
