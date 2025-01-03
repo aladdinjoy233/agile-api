@@ -115,7 +115,8 @@ public class TiendasController : ControllerBase
 			return BadRequest("El correo electrónico es requerido.");
 		}
 
-		var tienda = await _context.Tiendas.FindAsync(tiendaId);
+		var tienda = await _context.Tiendas.Include(t => t.Usuarios).FirstOrDefaultAsync(t => t.Id == tiendaId);
+
 		if (tienda == null)
 		{
 			return NotFound("Tienda no encontrada");
@@ -150,5 +151,38 @@ public class TiendasController : ControllerBase
 		await _context.SaveChangesAsync();
 
 		return Ok("Invitación enviada");
+	}
+
+	[HttpPost("{tiendaId}/Salir")]
+	[Authorize]
+	public async Task<IActionResult> Salir(int tiendaId)
+	{
+		// var tienda = await _context.Tiendas.FindAsync(tiendaId); // No incluye a los usuarios
+		var tienda = await _context.Tiendas.Include(t => t.Usuarios).FirstOrDefaultAsync(t => t.Id == tiendaId);
+		if (tienda == null)
+		{
+			return NotFound("Tienda no encontrada");
+		}
+
+		var usuario = User.Identity != null ? await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == User.Identity.Name) : null;
+		if (usuario == null)
+		{
+			return Unauthorized();
+		}
+
+		if (tienda.DueñoId == usuario.Id)
+		{
+			return BadRequest("El dueño de la tienda no puede salir de la tienda.");
+		}
+
+		if (!tienda.Usuarios.Contains(usuario))
+		{
+			return BadRequest("El usuario no pertenece a esta tienda.");
+		}
+
+		tienda.Usuarios.Remove(usuario);
+		await _context.SaveChangesAsync();
+
+		return Ok("Has salido de la tienda.");
 	}
 }
