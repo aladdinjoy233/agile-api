@@ -67,6 +67,25 @@ public class TiendasController : ControllerBase
 		return Ok(tienda);
 	}
 
+	[HttpGet("Obtener/{id}")]
+	[Authorize]
+	public async Task<IActionResult> Obtener(int id)
+	{
+		var tienda = await _context.Tiendas.Include(t => t.Usuarios).FirstOrDefaultAsync(t => t.Id == id);
+		if (tienda == null)
+		{
+			return NotFound();
+		}
+
+		var usuario = User.Identity != null ? await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == User.Identity.Name) : null;
+		if (usuario == null || !tienda.Usuarios.Contains(usuario))
+		{
+			return Unauthorized();
+		}
+
+		return Ok(tienda);
+	}
+
 	[HttpDelete("Eliminar/{id}")]
 	[Authorize]
 	public async Task<IActionResult> Eliminar(int id)
