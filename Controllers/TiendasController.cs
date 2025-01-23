@@ -204,4 +204,23 @@ public class TiendasController : ControllerBase
 
 		return Ok("Has salido de la tienda.");
 	}
+
+	[HttpGet("{tiendaId}/EsDuenio")]
+	[Authorize]
+	public async Task<IActionResult> EsDuenio(int tiendaId)
+	{
+		var tienda = await _context.Tiendas.FindAsync(tiendaId);
+		if (tienda == null)
+		{
+			return NotFound("Tienda no encontrada");
+		}
+
+		var usuario = User.Identity != null ? await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == User.Identity.Name) : null;
+		if (usuario == null)
+		{
+			return Unauthorized();
+		}
+
+		return Ok(tienda.DueñoId == usuario.Id);
+	}
 }
