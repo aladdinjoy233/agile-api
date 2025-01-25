@@ -205,6 +205,72 @@ public class TiendasController : ControllerBase
 		return Ok("Has salido de la tienda.");
 	}
 
+	[HttpPost("{tiendaId}/EliminarUsuario/{usuarioId}")]
+	[Authorize]
+	public async Task<IActionResult> EliminarUsuario(int tiendaId, int usuarioId)
+	{
+		var tienda = await _context.Tiendas.Include(t => t.Usuarios).FirstOrDefaultAsync(t => t.Id == tiendaId);
+		if (tienda == null)
+		{
+			return NotFound("Tienda no encontrada");
+		}
+
+		var usuario = await _context.Usuarios.FindAsync(usuarioId);
+		if (usuario == null)
+		{
+			return NotFound("Usuario no encontrado");
+		}
+
+		var usuarioActual = User.Identity != null ? await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == User.Identity.Name) : null;
+		if (usuarioActual == null || tienda.DueñoId != usuarioActual.Id)
+		{
+			return Unauthorized();
+		}
+
+		if (tienda.DueñoId == usuarioId)
+		{
+			return BadRequest("El dueño de la tienda no puede ser eliminado.");
+		}
+
+		if (!tienda.Usuarios.Contains(usuario))
+		{
+			return BadRequest("El usuario no pertenece a esta tienda.");
+		}
+
+		tienda.Usuarios.Remove(usuario);
+		await _context.SaveChangesAsync();
+
+		return Ok("Usuario eliminado de la tienda.");
+	}
+
+	[HttpPost("{tiendaId}/EliminarInvitacion")]
+	[Authorize]
+	public async Task<IActionResult> EliminarInvitacion(int tiendaId, [FromBody] InvitacionForm email)
+	{
+		var tienda = await _context.Tiendas.FindAsync(tiendaId);
+		if (tienda == null)
+		{
+			return NotFound("Tienda no encontrada");
+		}
+
+		var usuario = User.Identity != null ? await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == User.Identity.Name) : null;
+		if (usuario == null)
+		{
+			return Unauthorized();
+		}
+
+		var invitacion = await _context.InvitacionesPendientes.FirstOrDefaultAsync(i => i.TiendaId == tiendaId && i.EmailInvitado == email.Email);
+		if (invitacion == null)
+		{
+			return NotFound("Invitación no encontrada");
+		}
+
+		_context.InvitacionesPendientes.Remove(invitacion);
+		await _context.SaveChangesAsync();
+
+		return Ok("Invitación eliminada.");
+	}
+
 	[HttpGet("{tiendaId}/EsDuenio")]
 	[Authorize]
 	public async Task<IActionResult> EsDuenio(int tiendaId)
@@ -222,5 +288,46 @@ public class TiendasController : ControllerBase
 		}
 
 		return Ok(tienda.DueñoId == usuario.Id);
+	}
+
+	[HttpGet("{tiendaId}/obtenerusuarios")]
+	[Authorize]
+	public async Task<IActionResult> ObtenerUsuarios(int tiendaId)
+	{
+		var tienda = await _context.Tiendas.Include(t => t.Usuarios).FirstOrDefaultAsync(t => t.Id == tiendaId);
+		if (tienda == null)
+		{
+			return NotFound("Tienda no encontrada");
+		}
+
+		var usuario = User.Identity != null ? await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == User.Identity.Name) : null;
+		if (usuario == null || !tienda.Usuarios.Contains(usuario))
+		{
+			return Unauthorized();
+		}
+
+		var usuariosConPropiedad = tienda.Usuarios.Select(u => new
+		{
+			u.Id,
+			u.Nombre,
+			u.Email,
+			EsDuenio = u.Id == tienda.DueñoId,
+			EsInvitado = false
+		}).ToList();
+
+		var invitacionesPendientes = await _context.InvitacionesPendientes
+			.Where(i => i.TiendaId == tiendaId)
+			.Select(i => new
+			{
+				Id = 0, // No hay ID para los invitados pendientes
+				Nombre = string.Empty,
+				Email = i.EmailInvitado,
+				EsDuenio = false,
+				EsInvitado = true
+			}).ToListAsync();
+
+		usuariosConPropiedad.AddRange(invitacionesPendientes);
+
+		return Ok(usuariosConPropiedad);
 	}
 }
