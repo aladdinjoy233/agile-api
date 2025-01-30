@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using agile_api.Models;
 
@@ -10,9 +11,11 @@ using agile_api.Models;
 namespace agile_api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20250130144939_MakeCategoriaIdNullable")]
+    partial class MakeCategoriaIdNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,7 +39,7 @@ namespace agile_api.Migrations
 
             modelBuilder.Entity("agile_api.Models.Categoria", b =>
                 {
-                    b.Property<int>("CategoriaId")
+                    b.Property<int?>("CategoriaId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
@@ -83,7 +86,7 @@ namespace agile_api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int?>("CategoriaId")
+                    b.Property<int>("CategoriaId")
                         .HasColumnType("int");
 
                     b.Property<string>("Codigo")
@@ -205,7 +208,8 @@ namespace agile_api.Migrations
                     b.HasOne("agile_api.Models.Categoria", "Categoria")
                         .WithMany("Productos")
                         .HasForeignKey("CategoriaId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("agile_api.Models.Tienda", "Tienda")
                         .WithMany("Productos")
